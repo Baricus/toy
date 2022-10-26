@@ -37,12 +37,12 @@ type program = word list
 
 
 (*right associative stack*)
-type stack' = Empty 
-           | Elem of stack' * word
+(*type stack' = Empty *)
+           (*| Elem of stack' * word*)
 
-let pop2 (s : stack') =
-    match s with
-    | Elem (Elem (s', lhs), rhs) -> (lhs, rhs)
+(*let pop2 (s : stack') =*)
+    (*match s with*)
+    (*| Elem (Elem (s', lhs), rhs) -> (lhs, rhs)*)
 
 
 
@@ -54,6 +54,7 @@ type state = program IDMap.t
 let get_word_def wName (s : state) =
     let open IDMap in
         find_opt wName s;;
+
 
 
 
