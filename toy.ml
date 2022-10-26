@@ -1,5 +1,6 @@
 
 (*A word is either user defined by an id string or a special word*)
+(* NOTE: We may need to move NamedFunction out to distinguish values *)
 type word = 
           | Identifier of string
           | IntLit of int
@@ -24,6 +25,10 @@ type word =
           | Dollar
           
           | Define
+
+          (*| Dot (* print out to console if needed *) *)
+
+          (*| Skip (* for small step; we may not actually need this *)*)
 
 
 (*type values = Identifier of string*)
@@ -55,7 +60,26 @@ let get_word_def wName (s : state) =
     let open IDMap in
         find_opt wName s;;
 
+(* A program needs a state, a stack and the program (word list) *)
+type config = (state * stack * program);;
 
+
+let step ((sigma, stack, p) : config) = 
+    (* program can be a list of statements *)
+    match p with
+    | [] -> None
+    (* the first statement can be any defined constructor *)
+    | Identifier id :: p' -> Some (sigma, Identifier id :: stack, p')
+    | IntLit n :: p' -> Some (sigma, IntLit n :: stack, p')
+
+
+let rec run (c : config) =
+    match step c with
+    | Some c' -> run c'
+    | None -> c
+
+let run_program (p : program) = run (IDMap.empty, [], p)
+    
 
 
 
