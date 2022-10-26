@@ -69,8 +69,14 @@ let step ((sigma, stack, p) : config) =
     match p with
     | [] -> None
     (* the first statement can be any defined constructor *)
-    | Identifier id :: p' -> Some (sigma, Identifier id :: stack, p')
-    | IntLit n :: p' -> Some (sigma, IntLit n :: stack, p')
+    (*| IntLit n :: p' -> Some (sigma, IntLit n :: stack, p')*)
+    (*| Identifier id :: p' -> Some (sigma, Identifier id :: stack, p')*)
+    (* fun with or patterns *)
+    | (Identifier _ as x) :: p'
+    | (IntLit     _ as x) :: p'
+    | (BoolLit    _ as x) :: p'
+    | (Lambda     _ as x) :: p' -> Some (sigma, x :: stack, p')
+
 
 
 let rec run (c : config) =
