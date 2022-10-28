@@ -1,4 +1,3 @@
-
 (*Values can be either ints, identifiers, bools, or functions*)
 type value =
           | IdVal of string
@@ -46,6 +45,7 @@ type program = word list
     (*| Elem (Elem (s', lhs), rhs) -> (lhs, rhs)*)
 
 
+(* A map from function ID's (strings) to their implementation programs *)
 module IDMap = Map.Make (String) 
 type state = program IDMap.t
 
