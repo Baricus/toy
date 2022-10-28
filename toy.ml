@@ -59,12 +59,15 @@ type config = (state * stack * program);;
 
 let step ((sigma, stack, p) : config) = 
     (* program can be a list of statements *)
-    match p with
-    | [] -> None
+    match p, stack with
+    | [], _ -> None
     (* the first statement can be any defined constructor *)
 
     (* literals are functions that push themselves on the stack *)
-    | Value v :: p' -> Some (sigma, v :: stack, p')
+    | Value v :: p', _ -> Some (sigma, v :: stack, p')
+
+    (* Playing around with pattern matching on everything at once *)
+    | Plus :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 + v2) :: s', p')
 
 
 let rec run (c : config) =
@@ -73,7 +76,4 @@ let rec run (c : config) =
     | None -> c
 
 let run_program (p : program) = run (IDMap.empty, [], p)
-    
-
-
 
