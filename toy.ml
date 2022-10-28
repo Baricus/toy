@@ -1,11 +1,15 @@
 
-(*A word is either user defined by an id string or a special word*)
-(* NOTE: We may need to move NamedFunction out to distinguish values *)
-type word = 
-          | Identifier of string
-          | IntLit of int
-          | BoolLit of bool
-          | Lambda of word list
+(*Values can be either ints, identifiers, bools, or functions*)
+type value =
+          | IdVal of string
+          | IntVal of int
+          | BoolVal of bool
+          | LambdaVal of word list
+
+(*A word is either a function, a pre-defined function, or a literal value *)
+  and word = 
+          Value of value
+
           | NamedFunction of string
 
           | Plus
@@ -25,21 +29,13 @@ type word =
           | Dollar
           
           | Define
-
-          (*| Dot (* print out to console if needed *) *)
+          | Dot (* print out to console *) 
 
           (*| Skip (* for small step; we may not actually need this *)*)
 
-
-(*type values = Identifier of string*)
-            (*| Word of word*)
-            (*| IntLit of int*)
-            (*| BoolLit of bool*)
-            (*(* NOTE: how do we store functions? *)*)
-            (*| Function of values list*)
-
+(* aliases for our program types *)
+type stack = value list
 type program = word list
-
 
 (*right associative stack*)
 (*type stack' = Empty *)
@@ -49,9 +45,6 @@ type program = word list
     (*match s with*)
     (*| Elem (Elem (s', lhs), rhs) -> (lhs, rhs)*)
 
-
-
-type stack = word list
 
 module IDMap = Map.Make (String) 
 type state = program IDMap.t
@@ -69,14 +62,9 @@ let step ((sigma, stack, p) : config) =
     match p with
     | [] -> None
     (* the first statement can be any defined constructor *)
-    (*| IntLit n :: p' -> Some (sigma, IntLit n :: stack, p')*)
-    (*| Identifier id :: p' -> Some (sigma, Identifier id :: stack, p')*)
-    (* fun with or patterns *)
-    | (Identifier _ as x) :: p'
-    | (IntLit     _ as x) :: p'
-    | (BoolLit    _ as x) :: p'
-    | (Lambda     _ as x) :: p' -> Some (sigma, x :: stack, p')
 
+    (* literals are functions that push themselves on the stack *)
+    | Value v :: p' -> Some (sigma, v :: stack, p')
 
 
 let rec run (c : config) =
