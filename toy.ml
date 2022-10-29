@@ -77,7 +77,7 @@ let rec print_word w =
 
     and print_value v =
         match v with
-        | IdVal s                   -> print_string s
+        | IdVal s                   -> print_string "\ "; print_string s
         | IntVal i                  -> print_int i
         | BoolVal true              -> print_string "true"
         | BoolVal false             -> print_string "false"
