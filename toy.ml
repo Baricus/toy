@@ -113,7 +113,32 @@ let step ((sigma, stack, p) : config) =
 
     (* Playing around with pattern matching on everything at once *)
     | Plus :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 + v2) :: s', p')
+    | Minus :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 - v2) :: s', p')
+    | Multiplication :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 * v2) :: s', p')
+    | Division :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 / v2) :: s', p')
+    | Modulo :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 mod v2) :: s', p')
 
+    (*| And :: p', BoolVal v2 :: BoolVal v1 :: s' -> 
+    | Or :: p', BoolVal v2 :: BoolVal v1 :: s' -> *)
+    (*| Not :: p' , BoolVal v1 :: s' -> 
+        if v1 = true then Some (sigma, BoolVal false :: s', p') 
+            else Some (sigma, BoolVal true :: s', p') *)
+    (*|If *)
+
+    (*A better way to do this? a helper type_of_value function? *)
+    | Dup :: p', IdVal v1 :: s' -> Some (sigma, IdVal v1 :: IdVal v1 :: s', p')
+    | Dup :: p', Intval v1 :: s' -> Some (sigma, IntVal v1 :: IntVal v1 :: s', p')
+    | Dup :: p', BoolVal v1 :: s' -> Some (sigma, BoolVal v1 :: BoolVal v1 :: s', p')
+    | Dup :: p', LambdaVal v1 :: s' -> Some (sigma, LambdaVal v1 :: LambdaVal v1 :: s', p')
+
+    | Drop :: p', IdVal v1 :: s' -> Some (sigma, s', p')
+    | Drop :: p', IntVal v1 :: s' -> Some (sigma, s', p')
+    | Drop :: p', BoolVal v1 :: s' -> Some (sigma, s', p')
+    | Drop :: p', LambdaVal v1 :: s' -> Some (sigma, s', p')
+
+    (* I'm pretty sure ocaml doesnt have a del function so should we write one?
+       [ 2, 5, 3, 8, 7, 9] if index = 3 then del would be [ 2, 5] @ [ 8, 7, 9]? *)
+    (*| Dollar :: p', IntVal index :: s' -> (List.nth s' index as x) -> *)
 
 let rec run (c : config) =
     match step c with
