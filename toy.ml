@@ -131,5 +131,3 @@ let rec walk (c : config) =
 let run_program (p : program) = run (IDMap.empty, [], p)
 
 let walk_program (p : program) = walk (IDMap.empty, [], p)
-
-
