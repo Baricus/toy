@@ -131,7 +131,7 @@ let step ((sigma, stack, p) : config) =
 
     (*A better way to do this? a helper type_of_value function? *)
     (*| Dup :: p', IdVal v1 :: s' -> Some (sigma, IdVal v1 :: IdVal v1 :: s', p')*)
-    (*| Dup :: p', Intval v1 :: s' -> Some (sigma, IntVal v1 :: IntVal v1 :: s', p')*)
+    (*| Dup :: p', IntVal v1 :: s' -> Some (sigma, IntVal v1 :: IntVal v1 :: s', p')*)
     (*| Dup :: p', BoolVal v1 :: s' -> Some (sigma, BoolVal v1 :: BoolVal v1 :: s', p')*)
     (*| Dup :: p', LambdaVal v1 :: s' -> Some (sigma, LambdaVal v1 :: LambdaVal v1 :: s', p')*)
 
