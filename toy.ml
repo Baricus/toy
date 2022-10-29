@@ -102,6 +102,18 @@ let rec print_word w =
         print_stack s; print_string " => "; print_program p; print_string " "
 
 
+(* we need a function to pull values up in our stack *)
+(* this pulls the value at index i off and rebuilds the stack with that on top *)
+let pull_index i stack =
+    let rec go i stack = 
+        match i, stack with
+        | 0, top :: rest -> Some (top, rest)
+        | i, top :: rest -> let res = go (i-1) rest
+                            in Option.bind res (fun (new_head, back) -> Some (new_head, top :: back))
+        | i, [] -> None (* if we run off the list then we have no way to swap *)
+    in Option.bind (go i stack) (fun (new_head, rest) -> Some (new_head :: rest))
+
+
 let step ((sigma, stack, p) : config) = 
     (* program can be a list of statements *)
     match p, stack with
