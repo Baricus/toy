@@ -96,7 +96,7 @@ let rec print_word w =
             | v1 :: (v2 :: vrest as vs) -> print_value v1     ; print_string ", " ; go vs
             | vfinal :: []              -> print_value vfinal
             | []                        -> ()
-        in print_string "{"; go s; print_string "}"
+        in print_string "{"; go (List.rev s); print_string "}"
 
     and print_config ((_, s, p) : config) =
         print_stack s; print_string " => "; print_program p; print_string " "
