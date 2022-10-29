@@ -154,7 +154,8 @@ let step ((sigma, stack, p) : config) =
 
     (* I'm pretty sure ocaml doesnt have a del function so should we write one?
        [ 2, 5, 3, 8, 7, 9] if index = 3 then del would be [ 2, 5] @ [ 8, 7, 9]? *)
-    (*| Dollar :: p', IntVal index :: s' -> (List.nth s' index as x) -> *)
+    | Dollar :: p', IntVal index :: s' -> Option.map (fun new_stack -> (sigma, new_stack, p')) (pull_index index s')
+
 
 let rec run (c : config) =
     match step c with
