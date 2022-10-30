@@ -105,11 +105,12 @@ let rec print_word w =
 (* we need a function to pull values up in our stack *)
 (* this pulls the value at index i off and rebuilds the stack with that on top *)
 let pull_index i stack =
+    (* the "go" helper function returns a pair of the selected element and the list without that element *)
     let rec go i stack = 
         match i, stack with
-        | 0, top :: rest -> Some (top, rest)
-        | i, top :: rest -> let res = go (i-1) rest
-                            in Option.bind res (fun (new_head, back) -> Some (new_head, top :: back))
+        | 0, cur :: rest -> Some (cur, rest)
+        | i, cur :: rest -> let res = go (i-1) rest
+                            in Option.bind res (fun (new_head, back) -> Some (new_head, cur :: back))
         | i, [] -> None (* if we run off the list then we have no way to swap *)
     in Option.bind (go i stack) (fun (new_head, rest) -> Some (new_head :: rest))
 
