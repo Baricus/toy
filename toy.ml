@@ -75,9 +75,9 @@ let rec print_word w =
         | Define                    -> print_string "define"
         | Dot                       -> print_string "."
 
-    and print_value v =
+    and print_value ?(in_stack = false) v =
         match v with
-        | IdVal s                   -> print_string "\\ "; print_string s
+        | IdVal s                   -> if not in_stack then print_string "\\ " else (); print_string s
         | IntVal i                  -> print_int i
         | BoolVal true              -> print_string "true"
         | BoolVal false             -> print_string "false"
@@ -93,8 +93,8 @@ let rec print_word w =
         (* use a recursive helper function so we can wrap it all in { } *)
         let rec go s =  
             match s with
-            | v1 :: (v2 :: vrest as vs) -> print_value v1     ; print_string ", " ; go vs
-            | vfinal :: []              -> print_value vfinal
+            | v1 :: (v2 :: vrest as vs) -> print_value ~in_stack:true v1 ; print_string ", " ; go vs
+            | vfinal :: []              -> print_value ~in_stack:true vfinal
             | []                        -> ()
         in print_string "{"; go (List.rev s); print_string "}"
 
@@ -156,6 +156,13 @@ let step ((sigma, stack, p) : config) =
     (* I'm pretty sure ocaml doesnt have a del function so should we write one?
        [ 2, 5, 3, 8, 7, 9] if index = 3 then del would be [ 2, 5] @ [ 8, 7, 9]? *)
     | Dollar :: p', IntVal index :: s' -> Option.map (fun new_stack -> (sigma, new_stack, p')) (pull_index index s')
+
+    (* definitions! *)
+    | Define :: p', LambdaVal fun_imp :: IdVal name :: s' -> Some (IDMap.add name fun_imp sigma, s', p')
+    | NamedFunction name :: p', _ -> Option.map (fun fun_imp -> (sigma, stack, List.append fun_imp p')) (IDMap.find_opt name sigma)
+
+    (* print to console *)
+    | Dot :: p', v :: s' -> print_value v; Some (sigma, s', p')
 
     | _, _ -> None
 
