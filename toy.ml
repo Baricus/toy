@@ -77,7 +77,7 @@ let rec print_word w =
 
     and print_value v =
         match v with
-        | IdVal s                   -> print_string "\ "; print_string s
+        | IdVal s                   -> print_string "\\ "; print_string s
         | IntVal i                  -> print_int i
         | BoolVal true              -> print_string "true"
         | BoolVal false             -> print_string "false"
@@ -124,15 +124,15 @@ let step ((sigma, stack, p) : config) =
     | Value v :: p', _ -> Some (sigma, v :: stack, p')
 
     (* Playing around with pattern matching on everything at once *)
-    | Plus :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 + v2) :: s', p')
-    | Minus :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 - v2) :: s', p')
-    | Multiplication :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 * v2) :: s', p')
-    | Division :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 / v2) :: s', p')
-    | Modulo :: p', IntVal v2 :: IntVal v1 :: s' -> Some (sigma, IntVal (v1 mod v2) :: s', p')
+    | Plus           :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , IntVal (v1 + v2)   :: s' , p')
+    | Minus          :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , IntVal (v1 - v2)   :: s' , p')
+    | Multiplication :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , IntVal (v1 * v2)   :: s' , p')
+    | Division       :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , IntVal (v1 / v2)   :: s' , p')
+    | Modulo         :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , IntVal (v1 mod v2) :: s' , p')
 
-    (*| And :: p', BoolVal v2 :: BoolVal v1 :: s' -> 
-    | Or :: p', BoolVal v2 :: BoolVal v1 :: s' -> *)
-    (*| Not :: p' , BoolVal v1 :: s' -> 
+    (*| And :: p', BoolVal v2 :: BoolVal v1 :: s' ->
+    | Or :: p', BoolVal v2 :: BoolVal v1 :: s'    -> *)
+    (*| Not :: p' , BoolVal v1 :: s'              ->
         if v1 = true then Some (sigma, BoolVal false :: s', p') 
             else Some (sigma, BoolVal true :: s', p') *)
     (*|If *)
@@ -155,6 +155,8 @@ let step ((sigma, stack, p) : config) =
     (* I'm pretty sure ocaml doesnt have a del function so should we write one?
        [ 2, 5, 3, 8, 7, 9] if index = 3 then del would be [ 2, 5] @ [ 8, 7, 9]? *)
     | Dollar :: p', IntVal index :: s' -> Option.map (fun new_stack -> (sigma, new_stack, p')) (pull_index index s')
+
+    | _, _ -> None
 
 
 let rec run (c : config) =
