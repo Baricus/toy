@@ -183,3 +183,24 @@ let rec walk (c : config) =
 let run_program (p : program) = run (IDMap.empty, [], p)
 
 let walk_program (p : program) = walk (IDMap.empty, [], p)
+
+(* added so I can split this up into functions *)
+let ap = List.append
+let swap : program = [
+    Value (IdVal "swap");
+        Value (LambdaVal [Value (IntVal 1); Dollar]);
+    Define]
+
+(* Something like ... *)
+(* 0 1 => 1 0 => 1 0 0 => 0 0 1 => 0 0 1 1 => 0 1 1 0 => 0 1 0 1 *)
+let dup2: program = ap swap [
+    Value (IdVal "dup2");
+        Value (LambdaVal [NamedFunction "swap"; Dup; Value (IntVal 2); Dollar; Dup; Value (IntVal 3); Dollar; NamedFunction "swap"]);
+    Define]
+
+(* an infinite loop that fills the stack with the fibonachi sequence *)
+let fib: program = ap dup2 [
+    Value (IdVal "fib");
+        Value (LambdaVal [NamedFunction "dup2"; Plus; NamedFunction "fib"]);
+    Define;
+    Value (IntVal 1); Dup; NamedFunction "fib"]
