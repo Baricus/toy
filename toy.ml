@@ -189,7 +189,7 @@ let rec walk (c : config) =
     | Some c' -> walk c'
     | None -> c
 
-let run_program (p : program) = run (IDMap.empty, [], p)
+let run_program (p : program) = let res = run (IDMap.empty, [], p) in print_newline (); res
 
 let walk_program (p : program) = walk (IDMap.empty, [], p)
 
@@ -213,3 +213,5 @@ let fib: program = dup2 @ [
         Value (LambdaVal [NamedFunction "dup2"; Plus; NamedFunction "fib"]);
     Define;
     Value (IntVal 1); Dup; NamedFunction "fib"]
+
+
