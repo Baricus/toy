@@ -156,7 +156,8 @@ let step ((sigma, stack, p) : config) =
 
     | Not :: p' , BoolVal b :: s'  -> Some (sigma , BoolVal (not b) :: s' , p')
 
-    (*| If :: p',*)
+    | If :: p', LambdaVal pFalse :: LambdaVal pTrue :: BoolVal true :: s' -> Some (sigma, s', pTrue @ p')
+    | If :: p', LambdaVal pFalse :: LambdaVal pTrue :: BoolVal false :: s' -> Some (sigma, s', pFalse @ p')
 
     (* Just using a variable instead of the constructor just gives the 1st element, regardless of constructor! *)
     | Dup :: p', v :: s' -> Some (sigma, v :: v :: s', p')
