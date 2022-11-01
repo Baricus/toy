@@ -194,7 +194,6 @@ let run_program (p : program) = let res = run (IDMap.empty, [], p) in print_newl
 let walk_program (p : program) = walk (IDMap.empty, [], p)
 
 (* added so I can split this up into functions *)
-let ap = List.append
 let swap : program = [
     Value (IdVal "swap");
         Value (LambdaVal [Value (IntVal 1); Dollar]);
