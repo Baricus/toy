@@ -17,6 +17,13 @@ type value =
           | Division
           | Modulo
 
+          | Eq
+          | NotEq
+          | Lt
+          | LtEq
+          | Gt
+          | GtEq
+
           | And
           | Or
           | Not
@@ -52,36 +59,42 @@ type config = (state * stack * program);;
 (* but all these functions need to be mutually recursive *)
 let rec print_word w =
         match w with
-        | Value v                   -> print_value v
+        | Value v         -> print_value v
 
-        | NamedFunction f           -> print_string f
+        | NamedFunction f -> print_string f
 
-        | Plus                      -> print_string "+"
-        | Minus                     -> print_string "-"
-        | Multiplication            -> print_string "*"
-        | Division                  -> print_string "/"
-        | Modulo                    -> print_string "%"
+        | Plus            -> print_string "+"
+        | Minus           -> print_string "-"
+        | Multiplication  -> print_string "*"
+        | Division        -> print_string "/"
+        | Modulo          -> print_string "%"
 
-        | And                       -> print_string "and"
-        | Or                        -> print_string "or"
-        | Not                       -> print_string "not"
+        | Eq              -> print_string "="
+        | NotEq           -> print_string "<>"
+        | Lt              -> print_string "<"
+        | LtEq            -> print_string "<="
+        | Gt              -> print_string ">"
+        | GtEq            -> print_string ">="
 
-        | If                        -> print_string "if"
+        | And             -> print_string "and"
+        | Or              -> print_string "or"
+        | Not             -> print_string "not"
+        | If              -> print_string "if"
 
-        | Dup                       -> print_string "dup"
-        | Drop                      -> print_string "drop"
-        | Dollar                    -> print_string "$"
+        | Dup             -> print_string "dup"
+        | Drop            -> print_string "drop"
+        | Dollar          -> print_string "$"
 
-        | Define                    -> print_string "define"
-        | Dot                       -> print_string "."
+        | Define          -> print_string "define"
+        | Dot             -> print_string "."
 
     and print_value ?(in_stack = false) v =
         match v with
-        | IdVal s                   -> if not in_stack then print_string "\\ " else (); print_string s
-        | IntVal i                  -> print_int i
-        | BoolVal true              -> print_string "true"
-        | BoolVal false             -> print_string "false"
-        | LambdaVal p               -> print_string "( "     ; print_program p  ; print_string " )"
+        | IdVal s       -> if not in_stack then print_string "\\ " else (); print_string s
+        | IntVal i      -> print_int i
+        | BoolVal true  -> print_string "true"
+        | BoolVal false -> print_string "false"
+        | LambdaVal p   -> print_string "( "     ; print_program p  ; print_string " )"
 
     and print_program p =
         match p with
@@ -130,6 +143,13 @@ let step ((sigma, stack, p) : config) =
     | Multiplication :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , IntVal (v1 * v2)   :: s' , p')
     | Division       :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , IntVal (v1 / v2)   :: s' , p')
     | Modulo         :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , IntVal (v1 mod v2) :: s' , p')
+
+    | Eq    :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , BoolVal (v1 = v2)  :: s' , p')
+    | NotEq :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , BoolVal (v1 <> v2) :: s' , p')
+    | Lt    :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , BoolVal (v1 < v2)  :: s' , p')
+    | LtEq  :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , BoolVal (v1 <= v2) :: s' , p')
+    | Gt    :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , BoolVal (v1 > v2)  :: s' , p')
+    | GtEq  :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , BoolVal (v1 >= v2) :: s' , p')
 
     (*| And :: p', BoolVal v2 :: BoolVal v1 :: s' ->
     | Or :: p', BoolVal v2 :: BoolVal v1 :: s'    -> *)
