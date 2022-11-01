@@ -142,19 +142,7 @@ let step ((sigma, stack, p) : config) =
     | Dup :: p', v :: s' -> Some (sigma, v :: v :: s', p')
     | Drop :: p', v :: s' -> Some (sigma, s', p')
 
-    (*A better way to do this? a helper type_of_value function? *)
-    (*| Dup :: p', IdVal v1 :: s' -> Some (sigma, IdVal v1 :: IdVal v1 :: s', p')*)
-    (*| Dup :: p', IntVal v1 :: s' -> Some (sigma, IntVal v1 :: IntVal v1 :: s', p')*)
-    (*| Dup :: p', BoolVal v1 :: s' -> Some (sigma, BoolVal v1 :: BoolVal v1 :: s', p')*)
-    (*| Dup :: p', LambdaVal v1 :: s' -> Some (sigma, LambdaVal v1 :: LambdaVal v1 :: s', p')*)
-
-    (*| Drop :: p', IdVal v1 :: s' -> Some (sigma, s', p')*)
-    (*| Drop :: p', IntVal v1 :: s' -> Some (sigma, s', p')*)
-    (*| Drop :: p', BoolVal v1 :: s' -> Some (sigma, s', p')*)
-    (*| Drop :: p', LambdaVal v1 :: s' -> Some (sigma, s', p')*)
-
-    (* I'm pretty sure ocaml doesnt have a del function so should we write one?
-       [ 2, 5, 3, 8, 7, 9] if index = 3 then del would be [ 2, 5] @ [ 8, 7, 9]? *)
+    
     | Dollar :: p', IntVal index :: s' -> Option.map (fun new_stack -> (sigma, new_stack, p')) (pull_index index s')
 
     (* definitions! *)
@@ -185,6 +173,7 @@ let run_program (p : program) = run (IDMap.empty, [], p)
 let walk_program (p : program) = walk (IDMap.empty, [], p)
 
 (* added so I can split this up into functions *)
+let ap = List.append
 let swap : program = [
     Value (IdVal "swap");
         Value (LambdaVal [Value (IntVal 1); Dollar]);
