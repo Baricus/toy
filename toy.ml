@@ -151,9 +151,10 @@ let step ((sigma, stack, p) : config) =
     | Gt    :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , BoolVal (v1 > v2)  :: s' , p')
     | GtEq  :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , BoolVal (v1 >= v2) :: s' , p')
 
-    | And            :: p' , BoolVal v2 :: BoolVal v1 :: s' -> Some (sigma, BoolVal (v1 && v2) :: s', p')
-    | Or :: p', BoolVal v2 :: BoolVal v1 :: s'  -> Some (sigma, BoolVal (v1 || v2) :: s', p')
-    | Not :: p' , BoolVal b :: s'  -> Some (sigma, BoolVal (not b) :: s', p')
+    | And :: p' , BoolVal v2 :: BoolVal v1 :: s' -> Some (sigma , BoolVal (v1 && v2) :: s' , p')
+    | Or  :: p' , BoolVal v2 :: BoolVal v1 :: s' -> Some (sigma , BoolVal (v1 || v2) :: s' , p')
+
+    | Not :: p' , BoolVal b :: s'  -> Some (sigma , BoolVal (not b) :: s' , p')
 
     (*| If :: p',*)
 
