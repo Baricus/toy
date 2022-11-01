@@ -151,12 +151,11 @@ let step ((sigma, stack, p) : config) =
     | Gt    :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , BoolVal (v1 > v2)  :: s' , p')
     | GtEq  :: p' , IntVal v2 :: IntVal v1 :: s' -> Some (sigma , BoolVal (v1 >= v2) :: s' , p')
 
-    (*| And :: p', BoolVal v2 :: BoolVal v1 :: s' ->
-    | Or :: p', BoolVal v2 :: BoolVal v1 :: s'    -> *)
-    (*| Not :: p' , BoolVal v1 :: s'              ->
-        if v1 = true then Some (sigma, BoolVal false :: s', p') 
-            else Some (sigma, BoolVal true :: s', p') *)
-    (*|If *)
+    | And            :: p' , BoolVal v2 :: BoolVal v1 :: s' -> Some (sigma, BoolVal (v1 && v2) :: s', p')
+    | Or :: p', BoolVal v2 :: BoolVal v1 :: s'  -> Some (sigma, BoolVal (v1 || v2) :: s', p')
+    | Not :: p' , BoolVal b :: s'  -> Some (sigma, BoolVal (not b) :: s', p')
+
+    (*| If :: p',*)
 
     (* Just using a variable instead of the constructor just gives the 1st element, regardless of constructor! *)
     | Dup :: p', v :: s' -> Some (sigma, v :: v :: s', p')
