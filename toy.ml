@@ -156,14 +156,14 @@ let step ((sigma, stack, p) : config) =
 
     | Not :: p' , BoolVal b :: s'  -> Some (sigma , BoolVal (not b) :: s' , p')
 
-    | If :: p', LambdaVal pFalse :: LambdaVal pTrue :: BoolVal true :: s' -> Some (sigma, s', pTrue @ p')
-    | If :: p', LambdaVal pFalse :: LambdaVal pTrue :: BoolVal false :: s' -> Some (sigma, s', pFalse @ p')
+    | If :: p' , LambdaVal pFalse :: LambdaVal pTrue :: BoolVal true  :: s' -> Some (sigma , s' , pTrue @ p')
+    | If :: p' , LambdaVal pFalse :: LambdaVal pTrue :: BoolVal false :: s' -> Some (sigma , s' , pFalse @ p')
 
     (* Just using a variable instead of the constructor just gives the 1st element, regardless of constructor! *)
-    | Dup :: p', v :: s' -> Some (sigma, v :: v :: s', p')
-    | Drop :: p', v :: s' -> Some (sigma, s', p')
-
+    | Dup  :: p' , v :: s' -> Some (sigma , v  :: v   :: s' , p')
+    | Drop :: p' , v :: s' -> Some (sigma , s' ,  p')
     
+    (* takes a stack index :: rest and returns rest[index] :: rest / rest[index] (rest without the index) *)
     | Dollar :: p', IntVal index :: s' -> Option.map (fun new_stack -> (sigma, new_stack, p')) (pull_index index s')
 
     (* definitions! *)
@@ -213,4 +213,39 @@ let fib: program = dup2 @ [
     Define;
     Value (IntVal 1); Dup; NamedFunction "fib"]
 
+(* factorial the function *)
+let fact: program = [
+    Value (IdVal "fact");
+    Value (LambdaVal [
+        Dup; Value (IntVal 1); Gt; (* test for base case *)
+        Value (LambdaVal [
+            Dup; Value (IntVal 1); Minus; NamedFunction "fact"; Multiplication]); (* True (recursive) case *)
+        Value (LambdaVal [
+            Dup; Multiplication]); (* False (base) case *)
+    If]);
+    Define;
+    ]
 
+let fact_acc: program = swap @ [
+    Value (IdVal "fact_internal");
+    Value (LambdaVal [
+        Dup; Value (IntVal 1); Gt; (* test for base case *)
+        Value (LambdaVal [ (* True (recursive) case *)
+            Dup; 
+            Value (IntVal 2); Dollar; (* pull accumulator to top *)
+            Multiplication; NamedFunction "swap";
+            Value (IntVal 1); Minus;
+            NamedFunction "fact_internal"]); 
+        Value (LambdaVal [ (* False (base) case *)
+            Drop; (* remove counter; expose accumlator *)
+            Value (IntVal 1); Multiplication]);
+        If
+    ]);
+    Define;
+    Value (IdVal "fact");
+    Value (LambdaVal [
+        Value (IntVal 1); NamedFunction "swap"; (* setup accumulator *)
+        NamedFunction "fact_internal"
+    ]);
+    Define
+    ]
