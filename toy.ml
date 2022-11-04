@@ -249,3 +249,115 @@ let fact_acc: program = swap @ [
     ]);
     Define
     ]
+
+(* we should have a really simple parser for this *)
+open Option
+(* expects a list of strings and pulls out balanced parenthesis *)
+(* NOTE: assumes the first ( is not present! I.e. ["Hi"; "there"; ")"]; returns Some (["Hi"; "there"], []) *)
+let rec split_parens lst =
+    match lst with
+    | ")" :: l -> Some ([], l)
+    | "(" :: l -> bind (split_parens l) (fun (inner, rest) -> 
+            (* have to rewrap the parens to allow for re-parsing later *)
+            bind (split_parens rest) (fun (outer, rest') -> Some ("(" :: inner @ ")" :: outer, rest')))
+    | any :: l -> bind (split_parens l) (fun (inner, rest) -> Some (any :: inner, rest))
+    | [] -> None
+
+let parse s : program option =
+    let num_reg = Str.regexp "-?[0-9]+" in
+    let rec go words = 
+        match words with
+        | [] -> Some []
+
+        (* all the easy cases (keywords) *)
+        | "+"      :: wds -> bind (go wds) (fun rest -> Some (Plus                  :: rest))
+        | "-"      :: wds -> bind (go wds) (fun rest -> Some (Minus                 :: rest))
+        | "*"      :: wds -> bind (go wds) (fun rest -> Some (Multiplication        :: rest))
+        | "/"      :: wds -> bind (go wds) (fun rest -> Some (Division              :: rest))
+        | "%"      :: wds -> bind (go wds) (fun rest -> Some (Modulo                :: rest))
+        | "="      :: wds -> bind (go wds) (fun rest -> Some (Eq                    :: rest))
+
+        | "<>"     :: wds -> bind (go wds) (fun rest -> Some (NotEq                 :: rest))
+        | "<"      :: wds -> bind (go wds) (fun rest -> Some (Lt                    :: rest))
+        | "<="     :: wds -> bind (go wds) (fun rest -> Some (LtEq                  :: rest))
+        | ">"      :: wds -> bind (go wds) (fun rest -> Some (Gt                    :: rest))
+        | ">="     :: wds -> bind (go wds) (fun rest -> Some (GtEq                  :: rest))
+
+        | "and"    :: wds -> bind (go wds) (fun rest -> Some (And                   :: rest))
+        | "or"     :: wds -> bind (go wds) (fun rest -> Some (Or                    :: rest))
+        | "not"    :: wds -> bind (go wds) (fun rest -> Some (Not                   :: rest))
+        | "if"     :: wds -> bind (go wds) (fun rest -> Some (If                    :: rest))
+
+        | "dup"    :: wds -> bind (go wds) (fun rest -> Some (Dup                   :: rest))
+        | "drop"   :: wds -> bind (go wds) (fun rest -> Some (Drop                  :: rest))
+        | "$"      :: wds -> bind (go wds) (fun rest -> Some (Dollar                :: rest))
+
+        | "define" :: wds -> bind (go wds) (fun rest -> Some (Define                :: rest))
+        | "."      :: wds -> bind (go wds) (fun rest -> Some (Dot                   :: rest))
+
+        | "true"   :: wds -> bind (go wds) (fun rest -> Some (Value (BoolVal true)  :: rest))
+        | "false"  :: wds -> bind (go wds) (fun rest -> Some (Value (BoolVal false) :: rest))
+
+        | "\\" :: [] -> None
+        (* prevent \ + and things like that  for predefined syntax *)
+        | "\\" :: "+"      :: _ -> None
+        | "\\" :: "-"      :: _ -> None
+        | "\\" :: "*"      :: _ -> None
+        | "\\" :: "/"      :: _ -> None
+        | "\\" :: "%"      :: _ -> None
+        | "\\" :: "="      :: _ -> None
+
+        | "\\" :: "<>"     :: _ -> None
+        | "\\" :: "<"      :: _ -> None
+        | "\\" :: "<="     :: _ -> None
+        | "\\" :: ">"      :: _ -> None
+        | "\\" :: ">="     :: _ -> None
+
+        | "\\" :: "and"    :: _ -> None
+        | "\\" :: "or"     :: _ -> None
+        | "\\" :: "not"    :: _ -> None
+        | "\\" :: "if"     :: _ -> None
+
+        | "\\" :: "dup"    :: _ -> None
+        | "\\" :: "drop"   :: _ -> None
+        | "\\" :: "$"      :: _ -> None
+
+        | "\\" :: "define" :: _ -> None
+        | "\\" :: "."      :: _ -> None
+
+        | "\\" :: "true"   :: _ -> None
+        | "\\" :: "false"  :: _ -> None
+        (* we can't have a number here but anything else is good *)
+        | "\\" :: id :: wds -> 
+                if not (Str.string_match num_reg id 0)
+                    then bind (go wds) (fun rest -> Some (Value (IdVal id) :: rest))
+                    else None
+
+        (* lambdas we need to split off everything to the next parens recursively *)
+        | ")" :: _ -> None
+        | "(" :: wds -> 
+                bind (split_parens wds) (fun (inside, outside) ->
+                    bind (go inside) (fun prog ->
+                        bind (go outside) (fun rest -> Some (Value (LambdaVal prog) :: rest))))
+
+        (* either a number or a named function *)
+        | other :: wds -> bind (go wds) (fun rest -> 
+                if Str.string_match num_reg other 0
+                    then Some (Value (IntVal (int_of_string other)) :: rest)
+                    else Some (NamedFunction other :: rest))
+
+    in go (Str.split (Str.regexp "[ \t\n]+") s)
+
+
+(* so now we can write an interpreter! *)
+(* NOTE: this should typecheck first, once we have that *)
+let interpret ?(walk = false) (s : string) : config option =
+    match parse s with
+    | None -> print_string "Cannot parse program\n"; None
+    | Some program -> Some (if walk then walk_program program else run_program program)
+
+(* and proper programs! *)
+let fact_acc_str = "
+\\ swap ( 1 $ ) define 
+\\ fact_internal ( dup 1 > ( dup 2 $ * swap 1 - fact_internal ) ( drop 1 * ) if ) define 
+\\ fact ( 1 swap fact_internal ) define 5 fact"
