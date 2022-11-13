@@ -362,31 +362,9 @@ let fact_acc_str = "
 \\ fact_internal ( dup 1 > ( dup 2 $ * swap 1 - fact_internal ) ( drop 1 * ) if ) define 
 \\ fact ( 1 swap fact_internal ) define 5 fact"
 
+(* calculates the next leapyear *)
 let next_leapyear_str = "
 \\ is_leapyear ( dup 4 % ) define
 \\ next_leapyear ( is_leapyear 0 = ( 4 + ) ( is_leapyear 4 1 $ - + ) if ) define 
     2021 next_leapyear"
 
-(* Possible Typecheck Cases *)
-
-(*  _ : make sure ...
-
-    Value : it is of value type? 
-    NamedFunction : it exists in state/sigma
-
-    Plus, Minus, Multiplication, Division, Modulo,
-    Eq, NotEq, Lt, LtEq, Gt, GtEq   : first two elements on the stack is IntVal
-
-    And, Or  : first two elements on the stack is BoolVal 
-    Not      : first element on stack is a BoolVal
-
-    If  : first two elements is of LambdaVal type, third element is BoolVal
-    
-    Dup : the stack isn't empty? the first element is value type?
-    Drop : same thing? ^
-    Dollar : first element is a IntVal type, stack[index] exists
-
-    Define : first element is LambdaVal type, second element is IdVal type
-    Dot : stack isn't empty? first element is value type?
-
-*)
