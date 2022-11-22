@@ -390,18 +390,32 @@ let rec typecheck (prog : program)  (stack : typ list) =
         -> Option.bind (pull_index n stack) (fun stack -> typecheck rest stack)
     | Dollar :: _ -> None (* prevent dependent type requirements *)
 
+    (* for later ? TODO *)
+
+    | Value (IdVal id) :: Value (LambdaVal impl) :: Define :: rest -> None
+    | Define :: _ -> None
+    | NamedFunction word :: rest -> None (* lookup in (currently non-existent) gamma *)
+    | Value (LambdaVal _) :: rest -> None (* typecheck function and add arrow to the stack *)
+    | If :: rest -> None (* use types of two lamba values *)
+
+
+    (* base literals *)
     | Value (IntVal _) :: rest -> typecheck rest (IntTy :: stack)
     | Value (BoolVal _) :: rest -> typecheck rest (BoolTy :: stack)
     | Value (IdVal _) :: rest -> typecheck rest (IdTy :: stack)
     
-    (* for later *)
-    (*| Value (LambdaVal _) :: rest -> *)
 
 
 
 
 (* so now we can write an interpreter! *)
 (* NOTE: this should typecheck first, once we have that *)
+(* TODO: do that /\ *)
+(* TODO: modify parser so we can parse types of lambdas 
+I was thinking something like making lambdas list the inputs beforehand like:
+    ([ int int ] + )
+and we can just call "typecheck body [ int ; int ]"
+   *)
 let interpret ?(walk = false) (s : string) : config option =
     match parse s with
     | None -> print_string "Cannot parse program\n"; None
