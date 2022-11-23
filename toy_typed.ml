@@ -385,49 +385,64 @@ let parse s : program option =
     in go (Str.split (Str.regexp "[ \t\n]+") s)
 
 
+(* checks if the program's current input stack has what the input stack from a 
+   Lambba function needs and returns the new program input stack if success  *)
+let match_stack lambdaStack inputStack : typ list option = 
+    (match lambdaStack, inputStack with 
+    | [], _  -> Some inputStack
+    | x :: lambdaS', y :: inputS' -> if x = y then match_stack lambdaS' inputS' else None)
+
+
+
 let typecheck (prog : program) (stack : typ list) = 
-    let rec typecheck_internal prog input stack =
+    let rec typecheck_internal prog input stack (gamma : ty_context) =
         match prog with
         | [] -> Some (ArrowTy (input, stack))
         | Plus :: rest | Minus :: rest | Multiplication :: rest | Division :: rest | Modulo :: rest
             -> (match stack with
-                | IntTy :: IntTy :: stack -> typecheck_internal rest input (IntTy :: stack)
+                | IntTy :: IntTy :: stack -> typecheck_internal rest input (IntTy :: stack) gamma
                 | _ -> None)
 
         | Eq :: rest | Lt :: rest | Gt :: rest | LtEq :: rest | GtEq :: rest | NotEq :: rest
             -> (match stack with
-                | IntTy :: IntTy :: stack -> typecheck_internal rest input (BoolTy :: stack)
+                | IntTy :: IntTy :: stack -> typecheck_internal rest input (BoolTy :: stack) gamma
                 | _ -> None)
 
         | And :: rest | Or :: rest
             -> (match stack with
-                | BoolTy :: BoolTy :: stack -> typecheck_internal rest input (BoolTy :: stack)
+                | BoolTy :: BoolTy :: stack -> typecheck_internal rest input (BoolTy :: stack) gamma
                 | _ -> None)
 
         | Not :: rest
             -> (match stack with
-                | BoolTy :: stack -> typecheck_internal rest input (BoolTy :: stack)
+                | BoolTy :: stack -> typecheck_internal rest input (BoolTy :: stack) gamma
                 | _ -> None)
 
         | Dup :: rest
             -> (match stack with
-                | a :: stack -> typecheck_internal rest input (a :: a :: stack)
+                | a :: stack -> typecheck_internal rest input (a :: a :: stack) gamma
                 | _ -> None)
 
         | Drop :: rest | Dot :: rest
             -> (match stack with
-                | a :: stack -> typecheck_internal rest input stack
+                | a :: stack -> typecheck_internal rest input stack gamma
                 | _ -> None)
 
         | Value (IntVal n) :: Dollar :: rest
-            -> Option.bind (pull_index n stack) (fun stack -> typecheck_internal rest input stack)
+            -> Option.bind (pull_index n stack) (fun stack -> typecheck_internal rest input stack gamma)
         | Dollar :: _ -> None (* prevent dependent type requirements *)
 
         (* for later ? TODO *)
 
         | Value (IdVal id) :: Value (LambdaVal impl) :: Define :: rest -> None
         | Define :: _ -> None
-        | NamedFunction word :: rest -> None (* lookup in (currently non-existent) gamma *)
+        | NamedFunction word :: rest 
+            -> (match IDMap.find_opt word gamma with 
+                | ArrowTy (inTyp, outTyp) -> (let result = match_stack inTyp input in 
+                                              if result = None then None
+                                              else typecheck_internal rest result outTyp :: stack gamma)
+                | None -> None)
+            
         | Value (LambdaVal _) :: rest -> None (* typecheck_internal input function and add arrow to the stack *)
         | If :: rest -> None (* use types of two lamba values *)
 
