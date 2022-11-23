@@ -1,9 +1,15 @@
+type typ =
+      ArrowTy of (typ list * typ list) 
+    | IntTy
+    | BoolTy
+    | IdTy
+
 (*Values can be either ints, identifiers, bools, or functions*)
 type value =
           | IdVal of string
           | IntVal of int
           | BoolVal of bool
-          | LambdaVal of word list
+          | LambdaVal of (word list * typ) (* must be an arrowty *)
 
 (*A word is either a function, a pre-defined function, or a literal value *)
   and word = 
@@ -48,11 +54,7 @@ module IDMap = Map.Make (String)
 type state = program IDMap.t
 
 
-type typ =
-      ArrowTy of (typ list * typ list) 
-    | IntTy
-    | BoolTy
-    | IdTy
+
 
 type ty_context = typ IDMap.t
 
@@ -99,11 +101,11 @@ let rec print_word w =
 
     and print_value ?(in_stack = false) v =
         match v with
-        | IdVal s       -> if not in_stack then print_string "\\ " else (); print_string s
-        | IntVal i      -> print_int i
-        | BoolVal true  -> print_string "true"
-        | BoolVal false -> print_string "false"
-        | LambdaVal p   -> print_string "( "     ; print_program p  ; print_string " )"
+        | IdVal s         -> if not in_stack then print_string "\\ " else (); print_string s
+        | IntVal i        -> print_int i
+        | BoolVal true    -> print_string "true"
+        | BoolVal false   -> print_string "false"
+        | LambdaVal (p,_) -> print_string "( "     ; print_program p  ; print_string " )"
 
     and print_program p =
         match p with
@@ -165,8 +167,8 @@ let step ((sigma, stack, p) : config) =
 
     | Not :: p' , BoolVal b :: s'  -> Some (sigma , BoolVal (not b) :: s' , p')
 
-    | If :: p' , LambdaVal pFalse :: LambdaVal pTrue :: BoolVal true  :: s' -> Some (sigma , s' , pTrue @ p')
-    | If :: p' , LambdaVal pFalse :: LambdaVal pTrue :: BoolVal false :: s' -> Some (sigma , s' , pFalse @ p')
+    | If :: p' , LambdaVal (pFalse,_) :: LambdaVal (pTrue,_) :: BoolVal true  :: s' -> Some (sigma , s' , pTrue @ p')
+    | If :: p' , LambdaVal (pFalse,_) :: LambdaVal (pTrue,_) :: BoolVal false :: s' -> Some (sigma , s' , pFalse @ p')
 
     (* Just using a variable instead of the constructor just gives the 1st element, regardless of constructor! *)
     | Dup  :: p' , v :: s' -> Some (sigma , v  :: v   :: s' , p')
@@ -176,7 +178,7 @@ let step ((sigma, stack, p) : config) =
     | Dollar :: p', IntVal index :: s' -> Option.map (fun new_stack -> (sigma, new_stack, p')) (pull_index index s')
 
     (* definitions! *)
-    | Define :: p', LambdaVal fun_imp :: IdVal name :: s' -> Some (IDMap.add name fun_imp sigma, s', p')
+    | Define :: p', LambdaVal (fun_imp,_) :: IdVal name :: s' -> Some (IDMap.add name fun_imp sigma, s', p')
     | NamedFunction name :: p', _ -> Option.map (fun fun_imp -> (sigma, stack, fun_imp @ p')) (IDMap.find_opt name sigma)
 
     (* print to console *)
@@ -203,100 +205,99 @@ let run_program (p : program) = let res = run (IDMap.empty, [], p) in print_newl
 let walk_program (p : program) = walk (IDMap.empty, [], p)
 
 (* added so I can split this up into functions *)
-let swap : program = [
-    Value (IdVal "swap");
-        Value (LambdaVal [Value (IntVal 1); Dollar]);
-    Define]
+(*let swap : program = [*)
+    (*Value (IdVal "swap");*)
+        (*Value (LambdaVal [Value (IntVal 1); Dollar]);*)
+    (*Define]*)
 
 (* Something like ... *)
 (* 0 1 => 1 0 => 1 0 0 => 0 0 1 => 0 0 1 1 => 0 1 1 0 => 0 1 0 1 *)
-let dup2: program = swap @ [
-    Value (IdVal "dup2");
-        Value (LambdaVal [NamedFunction "swap"; Dup; Value (IntVal 2); Dollar; Dup; Value (IntVal 3); Dollar; NamedFunction "swap"]);
-    Define]
+(*let dup2: program = swap @ [*)
+    (*Value (IdVal "dup2");*)
+        (*Value (LambdaVal [NamedFunction "swap"; Dup; Value (IntVal 2); Dollar; Dup; Value (IntVal 3); Dollar; NamedFunction "swap"]);*)
+    (*Define]*)
 
 (* an infinite loop that fills the stack with the fibonachi sequence *)
-let fib: program = dup2 @ [
-    Value (IdVal "fib");
-        Value (LambdaVal [NamedFunction "dup2"; Plus; NamedFunction "fib"]);
-    Define;
-    Value (IntVal 1); Dup; NamedFunction "fib"]
+(*let fib: program = dup2 @ [*)
+    (*Value (IdVal "fib");*)
+        (*Value (LambdaVal [NamedFunction "dup2"; Plus; NamedFunction "fib"]);*)
+    (*Define;*)
+    (*Value (IntVal 1); Dup; NamedFunction "fib"]*)
 
 (* factorial the function *)
-let fact: program = [
-    Value (IdVal "fact");
-    Value (LambdaVal [
-        Dup; Value (IntVal 1); Gt; (* test for base case *)
-        Value (LambdaVal [
-            Dup; Value (IntVal 1); Minus; NamedFunction "fact"; Multiplication]); (* True (recursive) case *)
-        Value (LambdaVal [
-            Dup; Multiplication]); (* False (base) case *)
-    If]);
-    Define;
-    ]
+(*let fact: program = [*)
+    (*Value (IdVal "fact");*)
+    (*Value (LambdaVal [*)
+        (*Dup; Value (IntVal 1); Gt; (* test for base case *)*)
+        (*Value (LambdaVal [*)
+            (*Dup; Value (IntVal 1); Minus; NamedFunction "fact"; Multiplication]); (* True (recursive) case *)*)
+        (*Value (LambdaVal [*)
+            (*Dup; Multiplication]); (* False (base) case *)*)
+    (*If]);*)
+    (*Define;*)
+    (*]*)
 
-let fact_acc: program = swap @ [
-    Value (IdVal "fact_internal");
-    Value (LambdaVal [
-        Dup; Value (IntVal 1); Gt; (* test for base case *)
-        Value (LambdaVal [ (* True (recursive) case *)
-            Dup; 
-            Value (IntVal 2); Dollar; (* pull accumulator to top *)
-            Multiplication; NamedFunction "swap";
-            Value (IntVal 1); Minus;
-            NamedFunction "fact_internal"]); 
-        Value (LambdaVal [ (* False (base) case *)
-            Drop; (* remove counter; expose accumlator *)
-            Value (IntVal 1); Multiplication]);
-        If
-    ]);
-    Define;
-    Value (IdVal "fact");
-    Value (LambdaVal [
-        Value (IntVal 1); NamedFunction "swap"; (* setup accumulator *)
-        NamedFunction "fact_internal"
-    ]);
-    Define
-    ]
+(*let fact_acc: program = swap @ [*)
+    (*Value (IdVal "fact_internal");*)
+    (*Value (LambdaVal [*)
+        (*Dup; Value (IntVal 1); Gt; (* test for base case *)*)
+        (*Value (LambdaVal [ (* True (recursive) case *)*)
+            (*Dup; *)
+            (*Value (IntVal 2); Dollar; (* pull accumulator to top *)*)
+            (*Multiplication; NamedFunction "swap";*)
+            (*Value (IntVal 1); Minus;*)
+            (*NamedFunction "fact_internal"]); *)
+        (*Value (LambdaVal [ (* False (base) case *)*)
+            (*Drop; (* remove counter; expose accumlator *)*)
+            (*Value (IntVal 1); Multiplication]);*)
+        (*If*)
+    (*]);*)
+    (*Define;*)
+    (*Value (IdVal "fact");*)
+    (*Value (LambdaVal [*)
+        (*Value (IntVal 1); NamedFunction "swap"; (* setup accumulator *)*)
+        (*NamedFunction "fact_internal"*)
+    (*]);*)
+    (*Define*)
+    (*]*)
 
 (* we should have a really simple parser for this *)
 open Option
-(* expects a list of strings and pulls out balanced parenthesis *)
+(* expects a list of strings and pulls out balanced pairs of opn, cls *)
 (* NOTE: assumes the first ( is not present! I.e. ["Hi"; "there"; ")"]; returns Some (["Hi"; "there"], []) *)
-let rec split_parens lst =
-    match lst with
-    | ")" :: l -> Some ([], l)
-    | "(" :: l -> bind (split_parens l) (fun (inner, rest) -> 
-            (* have to rewrap the parens to allow for re-parsing later *)
-            bind (split_parens rest) (fun (outer, rest') -> Some ("(" :: inner @ ")" :: outer, rest')))
-    | any :: l -> bind (split_parens l) (fun (inner, rest) -> Some (any :: inner, rest))
+let rec split_on_nest opn cls l =
+    match l with
+    | a :: l' -> 
+        (* descend a scope *)
+        if a = opn then 
+            bind (split_on_nest opn cls l') (fun (inner, rest) ->
+                bind (split_on_nest opn cls rest) (fun (outer, rest') -> Some (opn :: inner @ cls :: outer, rest')))
+        (* end a scope *)
+        else if a = cls then
+            Some ([], l') 
+        (* take an input *)
+            else bind (split_on_nest opn cls l') (fun (i, o) -> Some (a :: i, o))
     | [] -> None
 
 
-let rec take_till_end_annote l
+let add_to_arr (ArrowTy (i, o)) i_or_o add =
+    if i_or_o then ArrowTy (add :: i, o) else ArrowTy (i, add :: o)
+
+let rec parse_ty i_or_o l =
     match l with
-    | "]" :: l' -> ([], l')
-    | 
+    | "Int"  :: l' -> bind (parse_ty i_or_o l') (fun arrow -> Some (add_to_arr arrow i_or_o IntTy))
+    | "Bool" :: l' -> bind (parse_ty i_or_o l') (fun arrow -> Some (add_to_arr arrow i_or_o BoolTy))
+    | "Id"   :: l' -> bind (parse_ty i_or_o l') (fun arrow -> Some (add_to_arr arrow i_or_o IdTy))
+    | "->"   :: l' -> bind (parse_ty false l') (fun arrow -> Some arrow)
+    | "["    :: l' -> bind (grab_type_annot l') (fun (inner_arrow, rest) -> 
+                        bind (parse_ty true rest) (fun arrow -> Some (add_to_arr arrow i_or_o inner_arrow)))
+    | [] -> Some (ArrowTy ([], []))
+    | _ -> None
 
-let rec parse_ty_list l =
-    match l with
-    | "Int"  :: l' -> IntTy  :: grab_type_list l'
-    | "Bool" :: l' -> BoolTy :: grab_type_list l'
-    | "Id"   :: l' -> IdTy   :: grab_type_list l'
-    | "["    :: l' -> grab_type_annot l'
-
-let grab_type_annot lst =
-    let annot = 
-    let intys, outtys = split_arrow
-    in ArrowTy (parse_ty_list intys, parse_ty_list outtys)
-
-
-let rec grab_type_list lst =
-    match lst with
-    | "Int"  :: l -> IntTy  :: grab_type_list l
-    | "Bool" :: l -> BoolTy :: grab_type_list l
-    | "Id"   :: l -> IdTy   :: grab_type_list l
-    | "->" :: l -> 
+and grab_type_annot lst =
+    bind (split_on_nest "[" "]" lst) (fun (annot, lst') ->
+    bind (parse_ty true annot) (fun arrow ->
+    Some (arrow, lst')))
 
 
 let parse s : program option =
@@ -372,9 +373,10 @@ let parse s : program option =
         (* lambdas we need to split off everything to the next parens recursively *)
         | ")" :: _ -> None
         | "([" :: wds -> 
-                bind (split_parens wds) (fun (inside, outside) ->
-                    bind (go inside) (fun prog ->
-                        bind (go outside) (fun rest -> Some (Value (LambdaVal prog) :: rest))))
+                bind (grab_type_annot wds) (fun (arrow, wds') ->
+                    bind (split_on_nest "([" ")" wds') (fun (inside, outside) ->
+                        bind (go inside) (fun prog ->
+                            bind (go outside) (fun rest -> Some (Value (LambdaVal (prog, arrow)) :: rest)))))
 
         (* either a number or a named function *)
         | other :: wds -> bind (go wds) (fun rest -> 
@@ -382,7 +384,7 @@ let parse s : program option =
                     then Some (Value (IntVal (int_of_string other)) :: rest)
                     else Some (NamedFunction other :: rest))
 
-    in go (Str.split (Str.regexp "[ \t\n]+") s)
+    in go (Str.split (Str.regexp "[ \t\n]+") s) 
 
 
 let typecheck (prog : program) (stack : typ list) = 
@@ -453,7 +455,10 @@ and we can just call "typecheck body [ int ; int ]"
 let interpret ?(walk = false) (s : string) : config option =
     match parse s with
     | None -> print_string "Cannot parse program\n"; None
-    | Some program -> Some (if walk then walk_program program else run_program program)
+    | Some program -> 
+            (match typecheck program [] with
+             | Some (ArrowTy ([], out_stack)) -> Some (if walk then walk_program program else run_program program)
+             | _ -> print_string "Program does not typecheck\n"; None)
 
 (* and proper programs! *)
 let fact_acc_str = "
@@ -463,7 +468,7 @@ let fact_acc_str = "
 
 (* calculates the next leapyear *)
 let next_leapyear_str = "
-\\ is_leapyear ( dup 4 % ) define
-\\ next_leapyear ( is_leapyear 0 = ( 4 + ) ( is_leapyear 4 1 $ - + ) if ) define 
+\\ is_leapyear ([ Int -> Int ] dup 4 % ) define
+\\ next_leapyear ([ Int -> Int ] is_leapyear 0 = ([ Int -> Int ] 4 + ) ([ Int -> Int ] is_leapyear 4 1 $ - + ) if ) define 
     2021 next_leapyear"
 
