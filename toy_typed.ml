@@ -371,9 +371,14 @@ let rec typecheck (prog : program)  (stack : typ list) =
             | IntTy :: IntTy :: stack -> typecheck rest (BoolTy :: stack)
             | _ -> None)
 
-    | And :: rest | Or :: rest | Not :: rest 
+    | And :: rest | Or :: rest 
         -> (match stack with
             | BoolTy :: BoolTy :: stack -> typecheck rest (BoolTy :: stack)
+            | _ -> None)
+    
+    | Not :: rest 
+        -> (match stack with
+            | BoolTy :: stack -> typecheck rest (BoolTy :: stack)
             | _ -> None)
 
     | Dup :: rest
