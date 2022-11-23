@@ -272,6 +272,33 @@ let rec split_parens lst =
     | any :: l -> bind (split_parens l) (fun (inner, rest) -> Some (any :: inner, rest))
     | [] -> None
 
+
+let rec take_till_end_annote l
+    match l with
+    | "]" :: l' -> ([], l')
+    | 
+
+let rec parse_ty_list l =
+    match l with
+    | "Int"  :: l' -> IntTy  :: grab_type_list l'
+    | "Bool" :: l' -> BoolTy :: grab_type_list l'
+    | "Id"   :: l' -> IdTy   :: grab_type_list l'
+    | "["    :: l' -> grab_type_annot l'
+
+let grab_type_annot lst =
+    let annot = 
+    let intys, outtys = split_arrow
+    in ArrowTy (parse_ty_list intys, parse_ty_list outtys)
+
+
+let rec grab_type_list lst =
+    match lst with
+    | "Int"  :: l -> IntTy  :: grab_type_list l
+    | "Bool" :: l -> BoolTy :: grab_type_list l
+    | "Id"   :: l -> IdTy   :: grab_type_list l
+    | "->" :: l -> 
+
+
 let parse s : program option =
     let num_reg = Str.regexp "-?[0-9]+" in
     let rec go words = 
@@ -344,7 +371,7 @@ let parse s : program option =
 
         (* lambdas we need to split off everything to the next parens recursively *)
         | ")" :: _ -> None
-        | "(" :: wds -> 
+        | "([" :: wds -> 
                 bind (split_parens wds) (fun (inside, outside) ->
                     bind (go inside) (fun prog ->
                         bind (go outside) (fun rest -> Some (Value (LambdaVal prog) :: rest))))
@@ -358,56 +385,58 @@ let parse s : program option =
     in go (Str.split (Str.regexp "[ \t\n]+") s)
 
 
-let rec typecheck (prog : program)  (stack : typ list) = 
-    match prog with
-    | [] -> Some (ArrowTy ([], stack))
-    | Plus :: rest | Minus :: rest | Multiplication :: rest | Division :: rest | Modulo :: rest
-        -> (match stack with
-            | IntTy :: IntTy :: stack -> typecheck rest (IntTy :: stack)
-            | _ -> None)
+let typecheck (prog : program) (stack : typ list) = 
+    let rec typecheck_internal prog input stack =
+        match prog with
+        | [] -> Some (ArrowTy (input, stack))
+        | Plus :: rest | Minus :: rest | Multiplication :: rest | Division :: rest | Modulo :: rest
+            -> (match stack with
+                | IntTy :: IntTy :: stack -> typecheck_internal rest input (IntTy :: stack)
+                | _ -> None)
 
-    | Eq :: rest | Lt :: rest | Gt :: rest | LtEq :: rest | GtEq :: rest | NotEq :: rest
-        -> (match stack with
-            | IntTy :: IntTy :: stack -> typecheck rest (BoolTy :: stack)
-            | _ -> None)
+        | Eq :: rest | Lt :: rest | Gt :: rest | LtEq :: rest | GtEq :: rest | NotEq :: rest
+            -> (match stack with
+                | IntTy :: IntTy :: stack -> typecheck_internal rest input (BoolTy :: stack)
+                | _ -> None)
 
-    | And :: rest | Or :: rest 
-        -> (match stack with
-            | BoolTy :: BoolTy :: stack -> typecheck rest (BoolTy :: stack)
-            | _ -> None)
-    
-    | Not :: rest 
-        -> (match stack with
-            | BoolTy :: stack -> typecheck rest (BoolTy :: stack)
-            | _ -> None)
+        | And :: rest | Or :: rest
+            -> (match stack with
+                | BoolTy :: BoolTy :: stack -> typecheck_internal rest input (BoolTy :: stack)
+                | _ -> None)
 
-    | Dup :: rest
-        -> (match stack with
-            | a :: stack -> typecheck rest (a :: a :: stack)
-            | _ -> None)
+        | Not :: rest
+            -> (match stack with
+                | BoolTy :: stack -> typecheck_internal rest input (BoolTy :: stack)
+                | _ -> None)
 
-    | Drop :: rest | Dot :: rest
-        -> (match stack with
-            | a :: stack -> typecheck rest stack
-            | _ -> None)
+        | Dup :: rest
+            -> (match stack with
+                | a :: stack -> typecheck_internal rest input (a :: a :: stack)
+                | _ -> None)
 
-    | Value (IntVal n) :: Dollar :: rest
-        -> Option.bind (pull_index n stack) (fun stack -> typecheck rest stack)
-    | Dollar :: _ -> None (* prevent dependent type requirements *)
+        | Drop :: rest | Dot :: rest
+            -> (match stack with
+                | a :: stack -> typecheck_internal rest input stack
+                | _ -> None)
 
-    (* for later ? TODO *)
+        | Value (IntVal n) :: Dollar :: rest
+            -> Option.bind (pull_index n stack) (fun stack -> typecheck_internal rest input stack)
+        | Dollar :: _ -> None (* prevent dependent type requirements *)
 
-    | Value (IdVal id) :: Value (LambdaVal impl) :: Define :: rest -> None
-    | Define :: _ -> None
-    | NamedFunction word :: rest -> None (* lookup in (currently non-existent) gamma *)
-    | Value (LambdaVal _) :: rest -> None (* typecheck function and add arrow to the stack *)
-    | If :: rest -> None (* use types of two lamba values *)
+        (* for later ? TODO *)
+
+        | Value (IdVal id) :: Value (LambdaVal impl) :: Define :: rest -> None
+        | Define :: _ -> None
+        | NamedFunction word :: rest -> None (* lookup in (currently non-existent) gamma *)
+        | Value (LambdaVal _) :: rest -> None (* typecheck_internal input function and add arrow to the stack *)
+        | If :: rest -> None (* use types of two lamba values *)
 
 
-    (* base literals *)
-    | Value (IntVal _) :: rest -> typecheck rest (IntTy :: stack)
-    | Value (BoolVal _) :: rest -> typecheck rest (BoolTy :: stack)
-    | Value (IdVal _) :: rest -> typecheck rest (IdTy :: stack)
+        (* base literals *)
+        | Value (IntVal _) :: rest -> typecheck_internal rest input (IntTy :: stack)
+        | Value (BoolVal _) :: rest -> typecheck_internal rest input (BoolTy :: stack)
+        | Value (IdVal _) :: rest -> typecheck_internal rest input (IdTy :: stack)
+    in typecheck_internal prog stack stack
     
 
 
