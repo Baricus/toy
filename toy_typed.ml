@@ -437,7 +437,7 @@ let typecheck (prog : program) (stack : typ list) =
         (* for later ? TODO *)
 
         | Value (IdVal id) :: Value (LambdaVal (impl, (ArrowTy (func_in, func_out) as l_type))) :: Define :: rest -> 
-                let gamma' = IDMap.add id l_type gamma in
+                let gamma' = IDMap.add id l_type gamma in 
                 (match typecheck_internal impl func_in func_in gamma' with
                 | Some ((ArrowTy (checked_in, checked_out)) as typ) -> if func_out = checked_out then 
                         typecheck_internal rest input (typ :: stack) gamma'
@@ -448,8 +448,8 @@ let typecheck (prog : program) (stack : typ list) =
         | NamedFunction word :: rest 
             -> (match IDMap.find_opt word gamma with 
                 | Some (ArrowTy (inTyp, outTyp)) -> 
-                                            (match match_stack inTyp input with
-                                             | Some result -> typecheck_internal rest result (outTyp @ stack) gamma
+                                            (match match_stack inTyp stack with
+                                             | Some result -> typecheck_internal rest input (outTyp @ result) gamma
                                              | None -> None)
                 | _ -> None)
             
@@ -459,7 +459,11 @@ let typecheck (prog : program) (stack : typ list) =
                         typecheck_internal rest input (typ :: stack) gamma
                 else None
                 | _ -> None)
-        | If :: rest -> None (* use types of two lamba values *)
+        | If :: rest -> 
+                (match stack with
+                 | ArrowTy (i1, o1) :: ArrowTy (i2, o2) :: BoolTy :: stack -> 
+                         if i1 = i2 && o1 = o2 then typecheck_internal rest input stack gamma else None
+                | _ -> None)
 
 
         (* base literals *)
@@ -490,14 +494,19 @@ let interpret ?(walk = false) (s : string) : config option =
              | _ -> print_string "Program does not typecheck\n"; None)
 
 (* and proper programs! *)
+let rec_test = "\\ a ([ Int -> Int ] dup 0 = ([ Int -> Int ] ) ([ Int -> Int ] 1 - a ) if ) define 5 a"
+
+
 let fact_acc_str = "
-\\ swap ( 1 $ ) define 
-\\ fact_internal ( dup 1 > ( dup 2 $ * swap 1 - fact_internal ) ( drop 1 * ) if ) define 
-\\ fact ( 1 swap fact_internal ) define 5 fact"
+\\ swap ([ Int Int -> Int Int ] 1 $ ) define 
+\\ fact_internal ([ Int Int -> Int ] dup 1 > 
+    ([ Int Int -> Int ] dup 2 $ * swap 1 - fact_internal ) 
+    ([ Int Int -> Int ] drop ) if ) define 
+\\ fact ([ Int -> Int ] 1 swap fact_internal ) define 5 fact"
 
 (* calculates the next leapyear *)
 let next_leapyear_str = "
-\\ is_leapyear ([ Int -> Int ] dup 4 % ) define
+\\ is_leapyear ([ Int -> Int Int ] dup 4 % ) define
 \\ next_leapyear ([ Int -> Int ] is_leapyear 0 = ([ Int -> Int ] 4 + ) ([ Int -> Int ] is_leapyear 4 1 $ - + ) if ) define 
     2021 next_leapyear"
 
