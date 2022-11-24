@@ -389,11 +389,11 @@ let parse s : program option =
 
 (* checks if the program's current input stack has what the input stack from a 
    Lambba function needs and returns the new program input stack if success  *)
-let match_stack lambdaStack inputStack : typ list option = 
-    (match lambdaStack, inputStack with 
+let rec match_stack lambdaStack inputStack : typ list option = 
+    match lambdaStack, inputStack with 
     | [], _  -> Some inputStack
-    | x :: lambdaS', y :: inputS' -> if x = y then match_stack lambdaS' inputS' else None)
-
+    | _, [] -> None
+    | x :: lambdaS', y :: inputS' -> if x = y then match_stack lambdaS' inputS' else None
 
 
 let typecheck (prog : program) (stack : typ list) = 
@@ -436,24 +436,38 @@ let typecheck (prog : program) (stack : typ list) =
 
         (* for later ? TODO *)
 
-        | Value (IdVal id) :: Value (LambdaVal impl) :: Define :: rest -> None
+        | Value (IdVal id) :: Value (LambdaVal (impl, (ArrowTy (func_in, func_out) as l_type))) :: Define :: rest -> 
+                let gamma' = IDMap.add id l_type gamma in
+                (match typecheck_internal impl func_in func_in gamma' with
+                | Some ((ArrowTy (checked_in, checked_out)) as typ) -> if func_out = checked_out then 
+                        typecheck_internal rest input (typ :: stack) gamma'
+                else None
+                | _ -> None)
+
         | Define :: _ -> None
         | NamedFunction word :: rest 
             -> (match IDMap.find_opt word gamma with 
-                | ArrowTy (inTyp, outTyp) -> (let result = match_stack inTyp input in 
-                                              if result = None then None
-                                              else typecheck_internal rest result outTyp :: stack gamma)
-                | None -> None)
+                | Some (ArrowTy (inTyp, outTyp)) -> 
+                                            (match match_stack inTyp input with
+                                             | Some result -> typecheck_internal rest result (outTyp @ stack) gamma
+                                             | None -> None)
+                | _ -> None)
             
-        | Value (LambdaVal _) :: rest -> None (* typecheck_internal input function and add arrow to the stack *)
+        | Value (LambdaVal (impl, ArrowTy (func_in, func_out))) :: rest -> 
+                (match typecheck_internal impl func_in func_in gamma with
+                | Some ((ArrowTy (checked_in, checked_out)) as typ) -> if func_out = checked_out then 
+                        typecheck_internal rest input (typ :: stack) gamma
+                else None
+                | _ -> None)
         | If :: rest -> None (* use types of two lamba values *)
 
 
         (* base literals *)
-        | Value (IntVal _) :: rest -> typecheck_internal rest input (IntTy :: stack)
-        | Value (BoolVal _) :: rest -> typecheck_internal rest input (BoolTy :: stack)
-        | Value (IdVal _) :: rest -> typecheck_internal rest input (IdTy :: stack)
-    in typecheck_internal prog stack stack
+        | Value (IntVal _) :: rest -> typecheck_internal rest input (IntTy :: stack) gamma
+        | Value (BoolVal _) :: rest -> typecheck_internal rest input (BoolTy :: stack) gamma
+        | Value (IdVal _) :: rest -> typecheck_internal rest input (IdTy :: stack) gamma
+        | _ -> None
+    in typecheck_internal prog stack stack IDMap.empty
     
 
 
