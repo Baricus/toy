@@ -180,7 +180,7 @@ let step ((sigma, stack, p) : config) =
     | NamedFunction name :: p', _ -> Option.map (fun fun_imp -> (sigma, stack, fun_imp @ p')) (IDMap.find_opt name sigma)
 
     (* print to console *)
-    | Dot :: p', v :: s' -> print_value v; Some (sigma, s', p')
+    | Dot :: p', v :: s' -> print_value ~in_stack:true v; print_newline (); Some (sigma, s', p')
 
     | _, _ -> None
 
@@ -474,6 +474,7 @@ let rec typecheck (prog : program) (stack : typ list) (gamma : ty_context) =
         | Value (IdVal _) :: rest -> typecheck_internal rest (IdTy :: stack) gamma
         | _ -> None
 
+    (* full typechecking is just mapping inputs to the output stack *)
     in let res = (match typecheck_internal prog stack gamma with
         | Some typ_list -> Some (ArrowTy (stack, typ_list))
         | None -> None) in res
@@ -502,4 +503,41 @@ let next_leapyear_str = "
 \\ is_leapyear ([ Int -> Int Int ] dup 4 % ) define
 \\ next_leapyear ([ Int -> Int ] is_leapyear 0 = ([ Int -> Int ] 4 + ) ([ Int -> Int ] is_leapyear 4 1 $ - + ) if ) define 
     2021 next_leapyear"
+
+
+(* computes fibonachi numbers recursively *)
+let fib_n_str = "
+\\ swap ([ Int Int -> Int Int ] 1 $ ) define 
+\\ fib ([ Int -> Int ] 
+        dup 1 <=
+
+        ([ Int -> Int ] drop 1 )
+        ([ Int -> Int ] dup 1 - fib swap 2 - fib + )
+
+        if
+    ) define
+
+\\ pfib ([ Int -> ] fib . ) define
+0 pfib
+1 pfib
+2 pfib
+3 pfib
+4 pfib
+5 pfib
+6 pfib
+7 pfib
+8 pfib
+9 pfib
+10 pfib
+11 pfib
+12 pfib
+13 pfib
+14 pfib
+15 pfib
+16 pfib
+17 pfib
+18 pfib
+19 pfib
+20 pfib
+"
 
