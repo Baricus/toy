@@ -368,3 +368,8 @@ let next_leapyear_str = "
 \\ next_leapyear ( is_leapyear 0 = ( 4 + ) ( is_leapyear 4 1 $ - + ) if ) define 
     2021 next_leapyear"
 
+
+(* if only we had type vars in toy_typed :( *)
+let eval_str = "
+\\ eval ( true swap () if ) define
+"
